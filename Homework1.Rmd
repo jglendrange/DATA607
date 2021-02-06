@@ -1,0 +1,53 @@
+---
+title: "Homework1"
+author: "Jordan Glendrange"
+date: "February 6, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Dataset
+
+The data set I chose is titled "How Unpopular is Donald Trump?" The link can be found here: https://projects.fivethirtyeight.com/trump-approval-ratings/
+
+The dataset is hosted on my github account.
+
+```{r}
+approval_poll <- read.csv("https://raw.githubusercontent.com/jglendrange/DATA607/main/approval_polllist.csv", TRUE, ",")
+
+head(approval_poll)
+```
+
+The column names are pretty clear and straighforward. I decided to drop some columns due to data redundancy and mostly null values.
+
+```{r}
+wanted_columns <- c("pollster","subgroup","startdate","enddate","grade","samplesize","population","adjusted_approve","adjusted_disapprove","poll_id","question_id","createddate")
+approval_poll <- approval_poll[wanted_columns]
+head(approval_poll)
+```
+
+I decided to take a look at the approval and disapproval rattings via a historgram
+
+```{r}
+hist(approval_poll$adjusted_approve)
+hist(approval_poll$adjusted_disapprove)
+
+```
+
+You can see easily see that the disapproval histogram skews further to the right.
+
+For fun I decided to plot the dissapproval rating against the approval rating. I expected to see a 1 to 1 relationship, but was suprised to see a few outliers. It would be an interesting follow up to see which pollsters reported those numbers.
+
+```{r}
+plot(approval_poll$adjusted_disapprove, approval_poll$adjusted_approve)
+
+```
+
+## Conclusion
+
+After reviewing the data set in the article Donald Trump held an average approval rating of ~42%. The only point Trump had an approval rating higher than his disapproval rating was at the very begining of his presidenciy. Furthermore at the end of his presidency there was a 20% gap between his approval and disapproval rating.
+
+In terms of follow ups I would like to investigate - It would be interesting to dig into what each pollster is reporting to try and tease out any biases. 
