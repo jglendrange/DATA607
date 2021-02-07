@@ -1,0 +1,105 @@
+---
+title: "Lab 1: Intro to R"
+author: "Author Name"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+### Exercise 1
+
+```{r view-girls-counts}
+arbuthnot$girls
+```
+
+
+### Exercise 2
+
+In the plot below we observe a sharp decline in female baptisms from 1640 to 1660.This would require further investigation as to why there was such a large decrease in that time period.
+
+```{r trend-girls}
+ggplot(data = arbuthnot, aes(x = year, y = girls)) + 
+  geom_point()
+```
+
+
+### Exercise 3
+
+In the plot below we are looking at the boy baptism count as a % of total baptisms. What we can see in the scatter plot below is that there was a pretty close to equal number of baptisms for males and females, but there we always more boys being baptized. The proportion never falls below 50%.
+
+```{r plot-prop-boys-arbuthnot}
+arbuthnot <- arbuthnot %>%
+  mutate(total = boys + girls)
+
+arbuthnot <- arbuthnot %>%
+  mutate(boy_to_girl_ratio = boys / girls)
+
+arbuthnot <- arbuthnot %>%
+  mutate(boy_ratio = boys / total)
+
+ggplot(data = arbuthnot, aes(x = year, y = boy_ratio)) + 
+  geom_point()
+```
+
+
+### Exercise 4
+
+After taking a glimpse we can see three columns in the present dataset.
+
+year: the year the birth took place
+boys: the count of boys born that year
+girls: the count of girls born that year
+
+```{r dim-present}
+head(present)
+```
+The dataset appear to contain the years ranging from 1940 - 2002.
+
+```{r}
+present %>%
+  summarize(min = min(year), max = max(year))
+```
+
+
+### Exercise 5
+
+After taking the average counts of the 2 datasets, the present table is dealing with counts 3 orders of magnitude larger than the arbuthnot table.
+
+```{r count-compare}
+present %>%
+  summarize(avg_boy = mean(boys), avg_girl = mean(girls))
+```
+```{r}
+arbuthnot %>%
+  summarize(avg_boy = mean(boys), avg_girl = mean(girls))
+```
+
+### Exercise 6
+
+Looking at the birthrates we observe the same trend. Boys are being born in a greater proportion, however there seems to be a downward trend over the years.
+
+```{r plot-prop-boys-present}
+present <- present %>%
+  mutate(birth_total = boys + girls)
+
+present <- present %>%
+  mutate(boy_proportion = boys / birth_total)
+
+ggplot(data = present, aes(x = year, y = boy_proportion)) + 
+  geom_point()
+```
+
+
+### Exercise 7
+
+1961 is the year with the highest birth total in this data set.
+
+```{r}
+print(present %>%
+  arrange(desc(birth_total)))
+```
+
