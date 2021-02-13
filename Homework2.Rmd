@@ -1,0 +1,116 @@
+---
+title: "Data607 Homework 2"
+author: "Jordan Glendrange"
+date: "February 14th, 2021"
+output: html_document
+---
+
+***Database creation and Insertion of Data***
+
+I decided to create a postgres instance on my computer to store the movie survey data. This is the SQL database I am the most familiar with, so I chose it over MySQL. The method I used to create the table and insert data was through SQL code. No csv was used during this process. Below is the code used to initiate table and insert the survey data. 
+
+```{sql, eval = FALSE}
+CREATE TABLE movie_reviews (
+	personId SERIAL PRIMARY KEY,
+	firstName varchar,
+	lastName varchar,
+	movie varchar,
+	rating int
+);
+
+INSERT INTO movie_reviews 
+	(firstName, lastName, movie, rating)
+VALUES
+	('Jordan','Glendrange','Goodfellas',1),
+	('Jordan','Glendrange','Princess Bride',1),
+	('Jordan','Glendrange','Akira',1),
+	('Jordan','Glendrange','Moonlight',1),
+	('Jordan','Glendrange','Killer Clowns From Outer Space',5),
+	('Evit','Markarian','Goodfellas',5),
+	('Evit','Markarian','Princess Bride',3),
+	('Evit','Markarian','Akira',3),
+	('Evit','Markarian','Moonlight',4),
+	('Evit','Markarian','Killer Clowns From Outer Space',1),
+	('Charlene','Nercess','Goodfellas',5),
+	('Charlene','Nercess','Princess Bride',5),
+	('Charlene','Nercess','Akira',1),
+	('Charlene','Nercess','Moonlight',5),
+	('Charlene','Nercess','Killer Clowns From Outer Space',2),
+	('Ray','Glendrange','Goodfellas',5),
+	('Ray','Glendrange','Princess Bride',3),
+	('Ray','Glendrange','Akira',3),
+	('Ray','Glendrange','Moonlight',4),
+	('Ray','Glendrange','Killer Clowns From Outer Space',1),
+	('Jenny','Glendrange','Goodfellas',4),
+	('Jenny','Glendrange','Princess Bride',5),
+	('Jenny','Glendrange','Akira',2),
+	('Jenny','Glendrange','Moonlight',5),
+	('Jenny','Glendrange','Killer Clowns From Outer Space',1)
+```
+
+***Connecting to Database***
+
+DBI and RPostgreSQL are the libraries I am using in order to connect to the postgres database (hosted on my computer). Keep in mind this code is **not** reproducible, because 1. I am setting my working directory in the code and 2. The data is hosted on my personal computer. 
+
+```{r}
+library("DBI")
+library("RPostgreSQL")
+setwd("/Users/jordanglendrange/Documents/DATA607/Homework2")
+source("loginCredentials.R")
+```
+
+To hide the database credentials I saved them in an R script file and brought them in as variables using the source command.
+
+```{r}
+con <- dbConnect(RPostgres::Postgres(), user=username,dbname=dbname,password=password)
+```
+
+***Querying Data***
+
+Next I want to query the entire table and store it in a dataframe. This will allow me to work in R on it.
+
+```{r}
+movie_reviews <- dbGetQuery(con, 'select * from movie_reviews')
+head(movie_reviews)
+```
+
+***Analysis***
+
+In the chart below we can see Goodfellas got the highest review. This is to be expected, it's a great movie! Killer Clowns From Outer Space and Akira were tied for last. Most surveyed hadn't seen Akira. Let's dig into the Clown movie.
+
+```{r}
+library("tidyverse")
+library("ggplot2")
+
+avg_movie <- movie_reviews %>%
+  group_by(movie) %>%
+  summarise(avg_score = mean(rating))
+
+ggplot(data=avg_movie, aes(y=movie, x=avg_score)) + geom_col()
+```
+
+This is surprising, Jordan gave KC a 5 star rating while almost everyone else gave it a 1 star rating. I'm interested to see how Jordan rated the other movies.
+```{r}
+killer_clown <- movie_reviews %>%
+  filter(movie == "Killer Clowns From Outer Space")
+
+ggplot(data=killer_clown, aes(y=firstname, x=rating)) +geom_col()
+```
+Wow. He gave every movie a 1 star rating except Killer Clowns from OuterSpace. What's wrong with this guy?
+
+```{r}
+jordan_ratings <- movie_reviews %>%
+  filter(firstname == "Jordan")
+
+ggplot(data=jordan_ratings, aes(y=movie, x=rating)) +geom_col()
+```
+
+## Apendix
+***Creating the Table in the postgres terminal***
+
+![Table Creation.](/Users/jordanglendrange/Desktop/screenshot1.png)
+
+
+***Inserting data and querying it in the postgres terminal***
+
+![Inserting Data and Querying Data](/Users/jordanglendrange/Desktop/screenshot2.png)
