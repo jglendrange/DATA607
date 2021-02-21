@@ -1,0 +1,84 @@
+---
+title: "Homework 3"
+author: "Jordan Glendrange"
+date: "February 21, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+```
+
+# Problem 1
+
+Here I am bringing the data in using the rvest and tidyverse libraries. Html_table brings in all the table into a list. Since I only have one table I select the first index. The "[-1,]" is to remove the first row of data since is was not relevant. The data is pretty messy, so for the purpose of the problem I remove all the other columns and just select the "MAJOR" column. Then I use a regex to match to either data or statistics while ignoring casing. 
+
+```{r}
+content <- read_html("https://projects.fivethirtyeight.com/mid-levels/college-majors/index.html")
+
+tables <- content %>% html_table(fill = TRUE)
+
+majors <- tables[[1]][-1,]
+majors <- majors %>% select(2)
+
+data_statistics_majors <- filter(majors, grepl('(data|statistics)', MAJOR, ignore.case = TRUE))
+
+head(data_statistics_majors)
+```
+
+# Problem 2
+
+Here I used the regular expression \\"[a-z\s?]+\\" to extract each element from the string. But, I was still left with commented out quotations. I used the remove all to get ride of these.
+
+```{r}
+fruits <- '[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange"
+
+[5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+
+[9] "elderberry"   "lime"         "lychee"       "mulberry"    
+
+[13] "olive"        "salal berry"'
+
+print(fruits)
+```
+
+
+```{r}
+fruit_new <- str_extract_all(fruits,'\\"[a-z\\s?]+\\"')[[1]]
+
+print(fruit_new)
+
+fruit_new <- str_remove_all(fruit_new, '\"')
+
+print(fruit_new)
+```
+
+# Problem 3
+
+1. (.)\1\1
+
+**Answer**: This would match strings that repeat the same character of length 3. For example: 333, hhh, lll, ???
+
+2. "(.)(.)\2\1"
+
+**Answer**: This would capture strings with 4 characters looking at the first 2 and the same 2 characters in reverse order. For example: "assa", "1221", "1pp1"
+
+3. (..)\1
+
+**Answer**: Similar to one the strings characters would be repeated 4 times. The capture group is 2 characters here. For example: aaaa, bbbb, pppp
+
+4. "(.).\1.\1"
+
+**Answer**: This would capture all strings that repeat at the 1st, 3rd, and 5th indicies. The 2nd and 4th index can be any character. For example: "ahapa", "b1b4b", "p5p6p"
+
+5. "(.)(.)(.).*\3\2\1"
+
+**Answer**: This captures all strings that end with the same 3 characters it started with but in reverse order. The string can be any length. For example: 95122335159 See how the string starts with 951 and ends with 159.
+
+# Problem 4
+
+1. (.).*\1
+2. .*(..).*\1.*
+3. .*(.).*\1.*\1.*
