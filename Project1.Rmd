@@ -1,0 +1,131 @@
+---
+title: "Project 1"
+author: "Jordan Glendrange"
+date: "February 28, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+```
+
+## Read text file
+
+The tournament file is saved on my github account where I am pulling it using the function "read.delim". I tried multiple separators, but decided on "\\t". 
+
+```{r}
+tournamentInfo <- read.delim("https://raw.githubusercontent.com/jglendrange/DATA607/main/tournamentinfo.txt", header=FALSE, sep="\t")
+
+head(tournamentInfo)
+```
+
+## Cleanup
+
+Currently all of the fields are stored in 1 field: V1. In the next block of code I clean up the data using regular expressions. Then, once I'm comfortable with how the data is formatted I split V1 into 10 columns by the character "|".
+
+```{r}
+tournamentInfo <- filter(tournamentInfo, !grepl('-{89}', V1))
+
+tournamentInfo$V1 <- gsub("\\s+\\|", "|", tournamentInfo$V1)
+tournamentInfo$V1 <- gsub("\\|\\s+", "|", tournamentInfo$V1)
+tournamentInfo$V1 <- sub("\\s+", "", tournamentInfo$V1)
+tournamentInfo$V1 <- sub("\\|$", "", tournamentInfo$V1)
+
+tournamentInfo <- data.frame(do.call("rbind", strsplit(as.character(tournamentInfo$V1), "|", fixed=TRUE)))
+colnames(tournamentInfo) <- c("pair","player_name","total_points","round1","round2","round3","round4","round5", "round6","round7")
+tournamentInfo <- tournamentInfo[-1,] 
+tournamentInfo <- tournamentInfo[-1,] 
+
+head(tournamentInfo)
+```
+
+## Split
+
+The next problem we face is 1 chess players data is spread across 2 rows. In the next chunk I split the dataframe into 2. The first contains the chess player information and the second contains their state and elo information. In the elo_rating table I'm only interested in the elo_rating and the state, so I remove all the other columns 
+
+```{r}
+players <- filter(tournamentInfo, !grepl('\\d+', player_name))
+elo_rating <- filter(tournamentInfo, grepl('\\d+', player_name))
+
+elo_rating <- elo_rating %>% select(1,2) 
+colnames(elo_rating) <- c('state','elo_rating')
+
+head(players)
+```
+```{r}
+head(elo_rating)
+```
+## Extract Pre Rating
+
+In the elo rating field I have both the pre and post elo rating. Since I am only interested in each players pre rating I extract it using regular expressions. Then I add the 2 fields to the players table. From now on I will only be using the players table.
+
+```{r}
+elo_rating$elo_rating <- gsub(".*R:\\s+(\\d+).*->.+", "\\1", elo_rating$elo_rating)
+
+players$elo_rating <- elo_rating$elo_rating
+players$state <- elo_rating$state
+
+head(players)
+```
+## Functions
+
+Here I define 2 functions. The first, "extract_pair", uses regular expressions to pull out the pair ID and then filter the plaeyers table to grab the corresponding elo rating. The second grabs the game status (Win, Lose, Draw, etc) and return either 1 or 0 depending on if they actually played a game. 
+
+```{r}
+extract_pair <- function(a) {
+  extracted_pair <- str_replace(a,"[A-Z]\\s+(\\d+)", "\\1")
+  if (extracted_pair == "B" | extracted_pair == "H" | extracted_pair == "U" | extracted_pair == "X") {
+    return(0)
+  }
+  else {
+    return(as.integer(filter(players, pair == as.integer(extracted_pair))$elo_rating))
+  }
+}
+
+extract_status <- function(a) {
+  val <- str_replace(a,"([A-Z])\\s+\\d+", "\\1")
+  if (val == "W" | val == "L" | val == "D") {
+    return(1)
+  }
+  else {
+    return(0)
+  }
+}
+```
+
+## Calculate # of games played and sum all elo from all opponents
+
+In a for loop I iterate through each row in the players data frame and use the two functions I defined on each round. I sum up all the returned results and store them in 2 separate lists. Then, after the for loop I divide the 2 lists to get the average elo of opponents faced.
+
+```{r}
+games_played <- c()
+total_elo <- c()
+
+for (i in 1:nrow(players)) {
+    total_sum <- extract_status(players[i,]$round1) + extract_status(players[i,]$round2) + extract_status(players[i,]$round3) + extract_status(players[i,]$round4) + extract_status(players[i,]$round5) + extract_status(players[i,]$round6) + extract_status(players[i,]$round7)
+  
+  games_played <- c(games_played, total_sum)
+  
+    elo_sum <- extract_pair(players[i,]$round1) + extract_pair(players[i,]$round2) + extract_pair(players[i,]$round3) + extract_pair(players[i,]$round4) + extract_pair(players[i,]$round5) + extract_pair(players[i,]$round6) + extract_pair(players[i,]$round7)
+  
+  total_elo <- c(total_elo, elo_sum)
+}
+
+average_faced_rating <- round(total_elo / games_played)
+```
+
+## Final
+
+Lastly, I select the columns I'm interested in and add the field "average_faced_rating" to the table. With my completed table I write the results to a csv. 
+
+```{r}
+cleaned_tournament_info <- players %>% select(2,12,3,11)
+
+cleaned_tournament_info$avg_opponent_rating <- average_faced_rating
+
+write.csv(cleaned_tournament_info,"./tournamentResults.csv")
+
+head(cleaned_tournament_info)
+```
