@@ -1,0 +1,66 @@
+---
+title: "Homework 4"
+author: "Jordan Glendrange"
+date: "3/7/2021"
+output: html_document
+---
+
+## Read Data
+
+The table is stored in a csv on my github accounts. Using "read_csv" to read data into a dataframe.
+
+```{r setup, include=FALSE}
+flights <- read.csv('https://raw.githubusercontent.com/jglendrange/DATA607/main/flights.csv')
+head(flights)
+```
+
+## Narrow Dataset
+
+It will be difficult to extract the flight counts when their stored in different columns. Here I use the gather function to narrow the data set and store all of the flight counts in one column.
+
+```{r}
+library(tidyr)
+library(dplyr)
+
+flights_narrow <- flights %>%
+  gather(City, Flights, 3:7)
+
+head(flights_narrow)
+```
+
+## Summarise 
+
+To discover which airline is more punctional we use a couple functions from the dplyr package. Namely mutate, to single out on time flights, and summarize to calculate the on time rate.
+
+```{r}
+flights_narrow %>%
+  mutate(on_time = ifelse(Status=='on time', Flights, 0)) %>%
+  group_by(Airline) %>%
+  summarise(
+    on_time_rate = sum(on_time) / sum(Flights)
+  )
+```
+
+Here we can see AM WEST is slightly better than Alaska w/ being on time. Let's investigate further and see if there are any stand out cities.
+
+```{r}
+flights_narrow %>%
+  mutate(on_time = ifelse(Status=='on time', Flights, 0)) %>%
+  group_by(City) %>%
+  summarise(
+    on_time_rate = sum(on_time) / sum(Flights)
+  )
+```
+
+Interesting. San Francisco performs the worst in terms of on time flights.
+
+```{r}
+flights_narrow %>%
+  mutate(sf_flights = ifelse(City=='San.Francisco', Flights, 0)) %>%
+  group_by(Airline) %>%
+  summarise(
+    sf_flights = sum(sf_flights) / sum(Flights)
+  )
+```
+
+A larger share of Alaska's flights are flying into SF. This could be the reason it has a lower proportion of flights being delayed. Not because it's an inferior Airline. 
