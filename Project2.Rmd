@@ -1,0 +1,167 @@
+---
+title: "Project 2"
+author: "Jordan Glendrange"
+date: "3/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyverse)
+library(rjson)
+library(XML)
+```
+
+## Dataset 1
+
+The first dataset is a list of countries and their populations in past, present, and future (projected) years. 
+
+```{r}
+worldPopulation <- read.csv('https://raw.githubusercontent.com/jglendrange/DATA607/main/worldPopulationData.csv')
+head(worldPopulation)
+```
+# Clean up column names
+
+```{r}
+column_names <- c('country_code','country_name','2021','2020','2050','2030','2019', '2015','2010','2000','1990','1980','1970','area','density','growth_rate','world_percentage','rank')
+
+colnames(worldPopulation) <- column_names 
+
+worldPopulation <- worldPopulation %>% select(1:13)
+```
+Here I pivot the wide data set into a long data set. Turning all the year's colums into 1 row called year and storing all of the population values in a column named population. 
+
+```{r}
+longData <- pivot_longer(worldPopulation, c(,'2021','2020','2050','2030','2019', '2015','2010','2000','1990','1980','1970'), names_to = 'year', values_to ='population')
+
+head(longData)
+```
+The population growth across all the countries plotted looks pretty linear. The slope does slightly change from the 2030-2050 timframe. We may be projected a decrease in birth rates in that period.
+
+```{r}
+longData %>%
+  group_by(year) %>%
+  summarise(total_population = sum(population)) %>%
+  plot(type='b')
+```
+Here I wanted to drill down on specific countries and how their population is trending. I limited it to the top 15 larget populations measured in 2021. After plotting the results we can see India and China are far above the rest of the world. We see an interesting trend where China begins to even out in growth and India is projected to surpass their population in 2030. I want to remove China and India to get a closer view at the other countries
+
+```{r}
+top15 <- longData %>%
+  filter(year==2021) %>%
+  top_n(n=15)
+  
+top15 <- longData[is.element(longData$country_name,top15$country_name),] 
+
+top15 %>%
+  ggplot(aes(x = year, y = population, color = country_name)) +
+  geom_point()
+```
+
+Two interesting insights from this is Nigeria's exponential projected growth from 2021 to 2050, and Japan's decreasing population.
+
+```{r}
+top15 %>%
+  filter(country_name != "India") %>%
+  filter(country_name != "China") %>%
+  ggplot(aes(x = year, y = population, color = country_name)) +
+  geom_point()
+```
+
+### Dataset 2
+
+In this case I want to know more about the attributes of the squirrels spotted and a few interactions. So I would get rid of a few columns to start
+
+```{r pressure, echo=FALSE}
+squirrelCensus <- read.csv('https://raw.githubusercontent.com/jglendrange/DATA607/main/2018_Central_Park_Squirrel_Census_-_Squirrel_Data.csv')
+
+head(squirrelCensus)
+```
+
+I selected the columns I want and then replace true and falses with 0's and 1's.
+
+```{r}
+squirrelCensus <- squirrelCensus %>% select(3, 5, 8, 9, 10, 17, 18, 19, 20)
+colnames(squirrelCensus) <- c('id','shift','age','primary_color', 'highlight_color', 'chasing', 'climbing','eating', 'foraging')
+
+head(squirrelCensus)
+
+squirrelCensus[squirrelCensus == 'false'] <- 0
+squirrelCensus[squirrelCensus == 'true'] <- 1
+
+head(squirrelCensus)
+```
+The plot shows us the majority of the squirrels are Adults.
+
+```{r}
+squirrelCensus %>%
+  filter(age != "") %>%
+ggplot(aes(x = age)) +
+  geom_bar() +
+  labs(
+    x = "", y = "",
+    title = "What age is the age of the Squirrels?"
+  ) +
+  coord_flip() 
+```
+The most common squirrels in central park are Gray squirrels.
+
+```{r}
+squirrelCensus %>%
+  filter(primary_color != "") %>%
+  ggplot(aes(x = primary_color)) +
+    geom_bar() +
+    labs(
+      x = "", y = "",
+      title = "What color are the Squirrels?"
+    ) +
+  coord_flip() 
+```
+In the last piece I am pivoting all the activities into a long table and observing which are the most common among squirrels. Here it seems like foraging is the most common. 
+
+```{r}
+activities <- squirrelCensus %>% select(1, 6, 7, 8, 9)
+activities_long <- pivot_longer(activities, c('chasing', 'climbing','eating','foraging'), names_to='activity')
+
+ggplot(activities_long, aes(x = activity, y=value)) +
+  geom_bar(stat="identity")
+```
+
+In conclusion, if you're spotting a squirl in central park you're most likely to see an adult gray colored squirrel that is foraging around :)
+
+### Dataset 3
+
+```{r}
+nyDeathCauses <- read.csv('https://raw.githubusercontent.com/jglendrange/DATA607/main/New_York_City_Leading_Causes_of_Death.csv')
+
+colnames(nyDeathCauses) <- c('year','leading_cause','sex','race_ethnicity','deaths','death_rate','age_adjusted_death_rate')
+head(nyDeathCauses)
+
+```
+White non-hispanics have the highest death rate in this data set.
+
+```{r}
+nyDeathCauses %>%
+  group_by(race_ethnicity) %>%
+  summarise(death_rate_avg = mean(as.numeric(death_rate))) %>%
+  filter(race_ethnicity != "Not Stated/Unknown", race_ethnicity != "Other Race/ Ethnicity") %>%
+  ggplot(aes(x = race_ethnicity, y = death_rate_avg)) +
+    geom_bar(stat="identity") +
+    labs(
+      x = "", y = "",
+      title = "Which race has the highest deathrate?"
+    ) +
+  coord_flip() 
+```
+
+In 2015, 2016, and 2017 we observed almost the same exact amount of deaths.
+
+```{r}
+nyDeathCauses %>%
+  group_by(year) %>%
+  summarise(total_deaths = sum(as.numeric(deaths)))%>%
+  filter(year >= 2015) %>%
+  ggplot(aes(x=year,y=total_deaths)) +
+  geom_bar(stat="identity")
+  
+```
