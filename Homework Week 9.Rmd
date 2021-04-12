@@ -1,0 +1,61 @@
+---
+title: "Homework Week 9"
+author: "Jordan Glendrange"
+date: "4/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library("httr")
+library("tidyverse")
+library("jsonlite")
+```
+
+## Request API
+
+After creating my dev account with the New York Times website I created an app with an api key. I made an API request using the GET function from the HTTR library. Printing the response gives us a status code of 200 which means it was successful.
+
+```{r}
+r <- GET("https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json?api-key=uUhvu5PYBLtlbDqzEsy9uo8DlG4O7iM3")
+print(r)
+```
+
+## Parsing the Response
+
+We extract the text content from the response and then convert the json text into a dataframe using the function fromJSON(). Then we take the results out and convert that into a dataframe.
+
+```{r}
+text_content <- content(r, "text")
+
+json_content <- text_content %>% fromJSON
+
+books <- data.frame(json_content$results$books)
+
+glimpse(books)
+```
+
+## Top Books
+
+```{r}
+books %>%  
+  ggplot(aes(x = reorder(title, rank) , y = rank)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "", y = "",
+    title = "Which hardback books are the most popular?"
+  ) +
+  coord_flip() 
+```
+
+## Weeks on the top
+
+```{r}
+books %>%  
+  ggplot(aes(x = reorder(title, weeks_on_list) , y = weeks_on_list)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "", y = "",
+    title = "Which hardback books have been on the top 15 the longest?"
+  ) +
+  coord_flip() 
+```
