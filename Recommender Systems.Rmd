@@ -1,0 +1,36 @@
+---
+title: "Recommender Systems"
+author: "Jordan Glendrange"
+date: "4/25/2021"
+output: html_document
+---
+
+
+## Stitch Fix Overview
+
+Stitch fix is a subscription company that sends clothing based on user preferences at some cadence. Their recommender system is pivotal to their business model, which we will be reviewing.
+
+## Reverse Engineer
+
+The recommender system starts with a survey the user takes when registering their account. Since the product is sending customized clothes to customers they need as much info as they can get without bogging the user down in the process. Once a user has created an account they use a more sofistacted algorithm the recommend future items. In each batch sent a user can give a rating on every item they recieve, which mean the next batch will be more custimized to the user's feedback.
+
+## Scenario Design
+
+**Who are your target users?**
+
+Target users are people that want stylish clothing delivered to them becasuse either: 1. They do not have the time to go to a store 2. They do not want to make a decision on what to wear 3. They want to change their style (go outside the box) and do not know where to start
+
+**What are their key goals?**
+
+I think there are 2 primary goals that stem from their recommender system. 1. Getting new users in the to sign up for a subscription. 2. Retaining existing customers for as long as possible.
+
+**How can we achieve this goal?**
+
+With new users our recommender relies soley on the survey users fill out at the beggining. This includes preferred size, color, style, etc. It's important that the survey is easy to fill out and doesn't hinder the user from signing up. Once they user is signed up and has recieved their first subsciption box they become a existing customer and our goal becomes retention. Our recomendation algorithm changes and relies on user feedback on the clothes we have already sent them. If we are able to refine our recomendations there is a better chance of retaining the customer. 
+
+
+## Recommendations
+
+The survey is quite long. I would attempt to make it shorter while still giving a customized first package. One idea I have is using well known celebtrities styles to get a feel for what the user might be interested in. 
+
+
