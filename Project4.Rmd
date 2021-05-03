@@ -1,0 +1,110 @@
+---
+title: "Project 4"
+author: "Jordan Glendrange"
+date: "5/1/2021"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(tidyverse)
+library(tm)
+library(purrr)
+library(randomForest)
+library(caTools)
+```
+
+## Reading email data
+
+Here I am reading the email data directly from 2 separate folders. 1 for spam data and the other for my easy ham data. I ran quite a few functions on each set to get the data formatted correctly. Notice I am encoding each file to 'latin1'. When I first ran the code in the next section I kept running into encoding issue errors. I found that bit of code on stack overflow. Lastly I union the 2 dataframes.
+
+```{r}
+spam_files <- list.files("Spam/spam_2/",full.names=TRUE)
+ham_files <- list.files("Ham/easy_ham_2/",full.names=TRUE)
+
+
+spam_df <- spam_files %>%
+  lapply(FUN=readLines) %>%
+  lapply(FUN=paste, collapse=" ") %>%
+  gsub(pattern = "\\d",replace="") %>%
+  as.data.frame() %>%
+  mutate_if(is.character, function(x) {Encoding(x) <- 'latin1'; return(x)}) %>%
+  mutate(file_name = spam_files) %>%
+  mutate(spam = 1)
+
+ham_df <- ham_files %>%
+  lapply(FUN=readLines) %>%
+  lapply(FUN=paste, collapse=" ") %>%
+  gsub(pattern = "\\d",replace="") %>%
+  as.data.frame() %>%
+  mutate_if(is.character, function(x) {Encoding(x) <- 'latin1'; return(x)}) %>%
+  mutate(file_name = ham_files) %>%
+  mutate(spam = 0)
+
+colnames(spam_df) <- c("text","file_name","spam")
+colnames(ham_df) <- c("text","file_name","spam")
+
+emails <- rbind(spam_df, ham_df)
+
+table(emails$spam)
+```
+
+## Corpus Cleanup
+
+The next step is to convert the dataframe into a corpus. The reason we do this is because a corpurs object has a ton of useful functions to clean up the text in the files. After we call all these cleanup functions we convert the corpus into a Document Term Matrix. The 0.95 I passed as the second arguement means at least 5% of the documents need to cotain a specific phrase. This might be too much? I would be interested to hear what others did.
+
+```{r, message=FALSE, warning=FALSE}
+email_corpus <- Corpus(VectorSource(emails$text))
+
+email_corpus <- email_corpus %>%
+  tm_map(tolower) %>%
+  #tm_map(PlainTextDocument) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(stemDocument) %>%
+  tm_map(removeWords, stopwords("english")) 
+  
+dtm <- DocumentTermMatrix(email_corpus)
+
+dtm <- removeSparseTerms(dtm, 0.95)
+
+inspect(dtm)
+```
+
+
+## Prepping for Prediction Model
+
+Here we convert our document term matrix into a dataframe and add the spam classification back. To train our model we split our data into 2 dataframes: test and train.
+
+```{r}
+emails_dtm = as.data.frame(as.matrix(dtm))
+
+colnames(emails_dtm) = make.names(colnames(emails_dtm))
+
+emails_dtm$spam = emails$spam
+emails_dtm$spam = as.factor(emails_dtm$spam)
+
+spl = sample.split(emails_dtm$spam, 0.7)
+
+train = subset(emails_dtm, spl == TRUE)
+test = subset(emails_dtm, spl == FALSE)
+
+table(train$spam)
+```
+
+## Random Forest
+
+Here the model is pretty straight forward. I decided to use Random Forest. Once we have the model trained we can use it to predict our test values and see how accurate it is.
+
+```{r}
+set.seed(10000)
+rf_model = randomForest(spam~., data=train)
+
+pred = predict(rf_model, newdata=test)
+
+table(test$spam, pred)
+```
+
+## Conclusion
+
+Our prediction model is fairly accurate. We successfully predicted 820 emails out of 839, which is a 97.7% success rate.
